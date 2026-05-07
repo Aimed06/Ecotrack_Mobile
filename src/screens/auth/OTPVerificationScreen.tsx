@@ -10,6 +10,7 @@ import { AuthStackParamList, Utilisateur } from '../../types';
 import { Colors } from '../../constants/colors';
 import { loginCitoyen, registerCitoyen, requestOTP } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../contexts/I18nContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'OTPVerification'>;
@@ -19,6 +20,7 @@ type Props = {
 export default function OTPVerificationScreen({ navigation, route }: Props) {
   const { telephone } = route.params;
   const { signIn } = useAuth();
+  const { t } = useI18n();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -36,13 +38,13 @@ export default function OTPVerificationScreen({ navigation, route }: Props) {
   const otpCode = otp.join('');
 
   const handleVerify = async () => {
-    if (otpCode.length < 6) return Alert.alert('Erreur', 'Entrez le code à 6 chiffres');
+    if (otpCode.length < 6) return Alert.alert(t('common.error'), t('auth.otp.errorEnterCode'));
     setLoading(true);
     try {
       if (isNewUser) {
         if (!nom.trim() || !prenom.trim()) {
           setLoading(false);
-          return Alert.alert('Erreur', 'Veuillez remplir votre nom et prénom');
+          return Alert.alert(t('common.error'), t('auth.otp.errorFillName'));
         }
         const res = await registerCitoyen({ telephone, nom, prenom, otp: otpCode });
         await signIn(res.data.data.token, res.data.data.utilisateur as Utilisateur);
@@ -54,9 +56,9 @@ export default function OTPVerificationScreen({ navigation, route }: Props) {
       const message = err.response?.data?.message || '';
       if (message.includes('non enregistré') || err.response?.status === 404) {
         setIsNewUser(true);
-        Alert.alert('Nouveau compte', 'Ce numéro n\'est pas encore enregistré. Créez votre compte.');
+        Alert.alert(t('auth.otp.newAccountTitle'), t('auth.otp.newAccountMsg'));
       } else {
-        Alert.alert('Erreur', message || 'Code invalide ou expiré');
+        Alert.alert(t('common.error'), message || t('auth.otp.errorInvalidCode'));
       }
     } finally {
       setLoading(false);
@@ -67,9 +69,9 @@ export default function OTPVerificationScreen({ navigation, route }: Props) {
     try {
       await requestOTP(telephone);
       setOtp(['', '', '', '', '', '']);
-      Alert.alert('Envoyé', 'Un nouveau code a été envoyé');
+      Alert.alert(t('auth.otp.sentTitle'), t('auth.otp.sentMsg'));
     } catch {
-      Alert.alert('Erreur', 'Impossible de renvoyer le code');
+      Alert.alert(t('common.error'), t('auth.otp.errorResend'));
     }
   };
 
@@ -77,11 +79,11 @@ export default function OTPVerificationScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
         <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Retour</Text>
+          <Text style={styles.backText}>{t('auth.otp.back')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>Vérification</Text>
-        <Text style={styles.subtitle}>Code envoyé au {telephone}</Text>
+        <Text style={styles.title}>{t('auth.otp.title')}</Text>
+        <Text style={styles.subtitle}>{t('auth.otp.codeSentTo', { phone: telephone })}</Text>
 
         <View style={styles.otpRow}>
           {otp.map((digit, i) => (
@@ -100,17 +102,17 @@ export default function OTPVerificationScreen({ navigation, route }: Props) {
 
         {isNewUser && (
           <View style={styles.newUserForm}>
-            <Text style={styles.newUserTitle}>Créez votre profil</Text>
+            <Text style={styles.newUserTitle}>{t('auth.otp.createProfile')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Prénom"
+              placeholder={t('auth.otp.firstnamePlaceholder')}
               value={prenom}
               onChangeText={setPrenom}
               placeholderTextColor={Colors.grey}
             />
             <TextInput
               style={styles.input}
-              placeholder="Nom"
+              placeholder={t('auth.otp.lastnamePlaceholder')}
               value={nom}
               onChangeText={setNom}
               placeholderTextColor={Colors.grey}
@@ -127,13 +129,13 @@ export default function OTPVerificationScreen({ navigation, route }: Props) {
             <ActivityIndicator color={Colors.white} />
           ) : (
             <Text style={styles.buttonText}>
-              {isNewUser ? 'Créer mon compte' : 'Valider'}
+              {isNewUser ? t('auth.otp.createAccount') : t('auth.otp.validateBtn')}
             </Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.resend} onPress={handleResend}>
-          <Text style={styles.resendText}>Renvoyer le code</Text>
+          <Text style={styles.resendText}>{t('auth.otp.resendCode')}</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>

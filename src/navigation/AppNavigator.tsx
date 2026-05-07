@@ -5,13 +5,14 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import MainStackNavigator from './MainStackNavigator';
+import AssocNavigator from './AssocNavigator';
 import { RootStackParamList } from '../types';
 import { Colors } from '../constants/colors';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { user, isLoading } = useAuth();
+  const { user, assoc, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,8 +24,10 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{  headerShown: false }}>
-        {user ? (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {assoc ? (
+          <Stack.Screen name="Assoc" component={AssocNavigator} />
+        ) : user ? (
           <Stack.Screen name="Main" component={MainStackNavigator} />
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />

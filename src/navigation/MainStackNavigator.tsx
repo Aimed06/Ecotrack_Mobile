@@ -2,15 +2,18 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../types';
 import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 import MainNavigator from './MainNavigator';
 import SignalementScreen from '../screens/main/SignalementScreen';
-import ProposePointCollecteScreen from '../screens/main/ProposePointCollecteScreen';
 import QRScannerScreen from '../screens/main/QRScannerScreen';
 import EditProfilScreen from '../screens/main/EditProfilScreen';
+import AssocRegisterScreen from '../screens/main/AssocRegisterScreen';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
 export default function MainStackNavigator() {
+  const C = useThemeColors();
+
   return (
     <Stack.Navigator>
       <Stack.Screen name="MainTabs" component={MainNavigator} options={{ headerShown: false }} />
@@ -21,20 +24,8 @@ export default function MainStackNavigator() {
           title: 'Signaler un déchet',
           headerBackTitle: 'Retour',
           headerTintColor: Colors.primary,
-          headerStyle: { backgroundColor: Colors.white },
-          headerTitleStyle: { fontWeight: '700', color: Colors.primaryDark },
-          headerShadowVisible: false,
-        }}
-      />
-      <Stack.Screen
-        name="ProposePointCollecte"
-        component={ProposePointCollecteScreen}
-        options={{
-          title: 'Proposer un point de collecte',
-          headerBackTitle: 'Retour',
-          headerTintColor: Colors.primary,
-          headerStyle: { backgroundColor: Colors.white },
-          headerTitleStyle: { fontWeight: '700', color: Colors.primaryDark },
+          headerStyle: { backgroundColor: C.bg },
+          headerTitleStyle: { fontWeight: '700', color: C.primaryDark },
           headerShadowVisible: false,
         }}
       />
@@ -50,9 +41,22 @@ export default function MainStackNavigator() {
           title: 'Modifier le profil',
           headerBackTitle: 'Retour',
           headerTintColor: Colors.primary,
-          headerStyle: { backgroundColor: Colors.white },
-          headerTitleStyle: { fontWeight: '700', color: Colors.primaryDark },
+          headerStyle: { backgroundColor: C.bg },
+          headerTitleStyle: { fontWeight: '700', color: C.primaryDark },
           headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="AssocRegister"
+        component={AssocRegisterScreen}
+        options={{
+          title: 'Inscription association',
+          headerBackTitle: 'Retour',
+          headerTintColor: Colors.primary,
+          headerStyle: { backgroundColor: C.bg },
+          headerTitleStyle: { fontWeight: '700', color: C.primaryDark },
+          headerShadowVisible: false,
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

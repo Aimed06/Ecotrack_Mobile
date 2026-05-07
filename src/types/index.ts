@@ -4,6 +4,7 @@ export interface Utilisateur {
   nom: string;
   prenom: string;
   email?: string;
+  pending_email?: string | null;
   photo_profil?: string;
   points_total: number;
   niveau: number;
@@ -29,7 +30,7 @@ export interface Signalement {
   created_at: string;
   citoyen?: Pick<Utilisateur, 'nom' | 'prenom'>;
   confirmations_count?: number;
-  photos_resolution?: string[];
+  photos_resolution?: { url: string; nom?: string; prenom?: string; submitted_at?: string }[];
 }
 
 export interface Evenement {
@@ -48,7 +49,7 @@ export interface Evenement {
   statut: 'en_attente' | 'publie' | 'annule' | 'termine';
   points_participation: number;
   photo?: string;
-  association?: { nom: string };
+  association?: { nom: string; logo?: string; email?: string; wilaya?: string; telephone?: string; adresse?: string; description?: string; photos?: string[]; facebook?: string };
   participations?: { statut: string }[];
 }
 
@@ -74,22 +75,43 @@ export interface Badge {
   UtilisateurBadge?: { date_obtenu: string };
 }
 
+export interface Association {
+  id: number;
+  nom: string;
+  email: string;
+  description?: string;
+  logo?: string;
+  wilaya?: string;
+  telephone?: string;
+  adresse?: string;
+  photos?: string[];
+  facebook?: string;
+  statut: 'en_attente' | 'validee' | 'rejetee';
+  motif_rejet?: string;
+}
+
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
+  Assoc: undefined;
+};
+
+export type AssocStackParamList = {
+  AssocProfil: undefined;
 };
 
 export type MainStackParamList = {
   MainTabs: undefined;
   Signalement: undefined;
-  ProposePointCollecte: undefined;
   QRScanner: { evenementId?: number; titre?: string };
   EditProfil: undefined;
+  AssocRegister: undefined;
 };
 
 export type AuthStackParamList = {
   PhoneInput: undefined;
   OTPVerification: { telephone: string };
+  AssocLogin: undefined;
 };
 
 export type MainTabParamList = {
@@ -101,7 +123,7 @@ export type MainTabParamList = {
 };
 
 export type EvenementsStackParamList = {
-  EvenementsList: undefined;
+  EvenementsList: { openId?: number } | undefined;
   EvenementDetail: { id: number };
   QRScanner: { evenementId: number; titre: string };
 };

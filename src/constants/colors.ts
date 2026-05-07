@@ -16,4 +16,21 @@ export const Colors = {
   greyLight: '#F3F4F6',
   greyBorder: '#E5E7EB',
   backgroundSecondary: '#F8FFFE',
+  bg: '#FFFFFF',
+  surface: '#FFFFFF',
+};
+
+export const DarkColors: typeof Colors = {
+  ...Colors,
+  primaryDark: '#4DD4A8',
+  primaryMedium: '#3EC896',
+  primaryLight: '#0B2419',
+  blueLight: '#0D1B2E',
+  backgroundSecondary: '#1A2820',
+  black: '#EBEBEB',
+  grey: '#9CA3AF',
+  greyLight: '#2C2C2E',
+  greyBorder: '#3A3A3C',
+  bg: '#121212',
+  surface: '#1E1E1E',
 };

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../types';
 import PhoneInputScreen from '../screens/auth/PhoneInputScreen';
 import OTPVerificationScreen from '../screens/auth/OTPVerificationScreen';
+import AssocLoginScreen from '../screens/assoc/AssocLoginScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -11,6 +12,7 @@ export default function AuthNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="PhoneInput" component={PhoneInputScreen} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+      <Stack.Screen name="AssocLogin" component={AssocLoginScreen} />
     </Stack.Navigator>
   );
 }
