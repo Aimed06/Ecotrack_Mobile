@@ -65,8 +65,16 @@ export default function PhoneInputScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await requestOTP(fullNumber);
-      navigation.navigate('OTPVerification', { telephone: fullNumber });
+      const res = await requestOTP(fullNumber);
+      const devOtp: string | undefined = (res.data as any).otp; // backend renvoie l'OTP en mode dev
+      if (devOtp) {
+        // En développement il n'y a pas de SMS — l'OTP s'affiche ici et dans la console backend
+        Alert.alert('Code OTP (dev)', `Code : ${devOtp}`, [
+          { text: 'OK', onPress: () => navigation.navigate('OTPVerification', { telephone: fullNumber }) },
+        ]);
+      } else {
+        navigation.navigate('OTPVerification', { telephone: fullNumber });
+      }
     } catch (err: any) {
       Alert.alert(t('common.error'), err.response?.data?.message || t('auth.phone.errorSend'));
     } finally {

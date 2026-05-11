@@ -5,6 +5,7 @@ import {
   Modal, Image, Alert,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
+import Supercluster from 'supercluster';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -220,9 +221,13 @@ export default function MapScreen() {
   } as Record<string, string>), [t]);
 
   const mapRef = useRef<MapView>(null);
+  const superclusterRef = useRef<Supercluster | null>(null);
+  const superclusterPointsRef = useRef<Supercluster | null>(null);
   const [activeFilter, setActiveFilter] = useState(t('map.filterCollect'));
   const [signalements, setSignalements] = useState<Signalement[]>([]);
   const [points, setPoints] = useState<PointCollecte[]>([]);
+  const [clusters, setClusters] = useState<any[]>([]);
+  const [pointsClusters, setPointsClusters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [wilaya, setWilaya] = useState<string | null>(null);
@@ -240,15 +245,134 @@ export default function MapScreen() {
   const toggleDegre = (d: number) =>
     setDegreFilter(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
 
+  const handleMapRegionChange = (region: Region) => {
+    const zoom = Math.log2(360 / region.longitudeDelta);
+    const bbox = [
+      region.longitude - region.longitudeDelta / 2,
+      region.latitude - region.latitudeDelta / 2,
+      region.longitude + region.longitudeDelta / 2,
+      region.latitude + region.latitudeDelta / 2,
+    ] as [number, number, number, number];
+
+    if (superclusterRef.current) {
+      setClusters(superclusterRef.current.getClusters(bbox, Math.floor(zoom)));
+    }
+    if (superclusterPointsRef.current) {
+      setPointsClusters(superclusterPointsRef.current.getClusters(bbox, Math.floor(zoom)));
+    }
+  };
+
   useEffect(() => {
-    Promise.all([getSignalements(1, 100, 'publie'), getPointsCollecte(1, 100)])
+    Promise.all([getSignalements(1, 1000, 'publie'), getPointsCollecte(1, 500)])
       .then(([sRes, pRes]) => {
-        setSignalements(sRes.data.data || []);
-        setPoints(pRes.data.data || []);
+        const sigs = sRes.data.data || [];
+        const pts = pRes.data.data || [];
+        setSignalements(sigs);
+        setPoints(pts);
+
+        // Initialiser supercluster avec les signalements
+        superclusterRef.current = new Supercluster({ radius: 40, maxZoom: 17 });
+        const geoSigs = sigs.map((sig: Signalement) => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(sig.longitude as any), parseFloat(sig.latitude as any)],
+          },
+          properties: { id: sig.id, ...sig },
+        }));
+        superclusterRef.current.load(geoSigs);
+
+        // Initialiser supercluster avec les points de collecte actifs
+        superclusterPointsRef.current = new Supercluster({ radius: 40, maxZoom: 17 });
+        const geoPts = pts
+          .filter((p: PointCollecte) => p.statut === 'actif')
+          .map((p: PointCollecte) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [parseFloat(p.longitude as any), parseFloat(p.latitude as any)],
+            },
+            properties: { id: p.id, ...p },
+          }));
+        superclusterPointsRef.current.load(geoPts);
+
+        // Initialiser les clusters avec la région par défaut
+        handleMapRegionChange(ALGERIE_REGION);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Recalcule supercluster quand wilaya/degreFilter/signalements changent
+  useEffect(() => {
+    if (!signalements.length) return;
+
+    const filtered = signalements.filter((s) => {
+      if (wilaya && s.wilaya !== wilaya) return false;
+      if (degreFilter.length > 0 && !degreFilter.includes(s.degre_pollution)) return false;
+      return true;
+    });
+
+    superclusterRef.current = new Supercluster({ radius: 40, maxZoom: 17 });
+    const geoPoints = filtered.map((sig: Signalement) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [parseFloat(sig.longitude as any), parseFloat(sig.latitude as any)],
+      },
+      properties: { id: sig.id, ...sig },
+    }));
+    superclusterRef.current.load(geoPoints);
+
+    if (mapRef.current) {
+      mapRef.current.getCamera().then((camera: any) => {
+        if (camera && camera.center) {
+          handleMapRegionChange({
+            latitude: camera.center.latitude,
+            longitude: camera.center.longitude,
+            latitudeDelta: camera.bounds ? camera.bounds.northEast.latitude - camera.bounds.southWest.latitude : 10,
+            longitudeDelta: camera.bounds ? camera.bounds.northEast.longitude - camera.bounds.southWest.longitude : 10,
+          });
+        }
+      });
+    }
+  }, [wilaya, degreFilter, signalements]);
+
+  // Recalcule supercluster pour les points de collecte quand wilaya/typeFilter changent
+  useEffect(() => {
+    if (!points.length) return;
+
+    const filtered = points.filter((p) => {
+      if (p.statut !== 'actif') return false;
+      if (wilaya && p.wilaya !== wilaya) return false;
+      if (typeFilter.length > 0 && !typeFilter.some(tv => Array.isArray(p.type_dechet) && p.type_dechet.includes(tv))) return false;
+      return true;
+    });
+
+    superclusterPointsRef.current = new Supercluster({ radius: 40, maxZoom: 17 });
+    const geoPts = filtered.map((p: PointCollecte) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [parseFloat(p.longitude as any), parseFloat(p.latitude as any)],
+      },
+      properties: { id: p.id, ...p },
+    }));
+    superclusterPointsRef.current.load(geoPts);
+
+    if (mapRef.current) {
+      mapRef.current.getCamera().then((camera: any) => {
+        if (camera && camera.center) {
+          handleMapRegionChange({
+            latitude: camera.center.latitude,
+            longitude: camera.center.longitude,
+            latitudeDelta: camera.bounds ? camera.bounds.northEast.latitude - camera.bounds.southWest.latitude : 10,
+            longitudeDelta: camera.bounds ? camera.bounds.northEast.longitude - camera.bounds.southWest.longitude : 10,
+          });
+        }
+      });
+    }
+  }, [wilaya, typeFilter, points]);
 
   const goToMyLocation = async () => {
     setLocating(true);
@@ -472,25 +596,82 @@ export default function MapScreen() {
           showsUserLocation
           showsMyLocationButton={false}
           showsCompass={false}
+          onRegionChangeComplete={handleMapRegionChange}
         >
-          {showSignalements && filteredSignalements.map((s) => (
-            <Marker
-              key={`s-${s.id}`}
-              coordinate={{ latitude: parseFloat(s.latitude as any), longitude: parseFloat(s.longitude as any) }}
-              onPress={() => setSelectedSignalement(s)}
-            >
-              <View style={[styles.markerSignalement, { backgroundColor: POLLUTION_COLOR[s.degre_pollution] }]}>
-                <Ionicons name="warning" size={12} color="#fff" />
-              </View>
-            </Marker>
-          ))}
+          {showSignalements && clusters.map((item: any) => {
+            const { geometry, properties } = item;
+            const { cluster: isCluster, point_count } = properties;
+            const lat = geometry.coordinates[1];
+            const lng = geometry.coordinates[0];
 
-          {showCollecte && filteredPoints.map((p) => {
+            if (isCluster) {
+              return (
+                <Marker
+                  key={`cluster-${lng}-${lat}`}
+                  coordinate={{ latitude: lat, longitude: lng }}
+                  onPress={() => {
+                    mapRef.current?.animateToRegion({
+                      latitude: lat,
+                      longitude: lng,
+                      latitudeDelta: 2,
+                      longitudeDelta: 2,
+                    }, 500);
+                  }}
+                >
+                  <View style={[styles.markerSignalement, { backgroundColor: Colors.primary, width: 42, height: 42, borderRadius: 21 }]}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>{point_count}</Text>
+                  </View>
+                </Marker>
+              );
+            }
+
+            const sig = properties as Signalement;
+            return (
+              <Marker
+                key={`sig-${sig.id}`}
+                coordinate={{ latitude: lat, longitude: lng }}
+                onPress={() => setSelectedSignalement(sig)}
+              >
+                <View style={[styles.markerSignalement, { backgroundColor: POLLUTION_COLOR[sig.degre_pollution] }]}>
+                  <Ionicons name="warning" size={12} color="#fff" />
+                </View>
+              </Marker>
+            );
+          })}
+
+          {showCollecte && pointsClusters.map((item: any) => {
+            const { geometry, properties } = item;
+            const { cluster: isCluster, point_count } = properties;
+            const lat = geometry.coordinates[1];
+            const lng = geometry.coordinates[0];
+
+            if (isCluster) {
+              return (
+                <Marker
+                  key={`pcluster-${lng}-${lat}`}
+                  coordinate={{ latitude: lat, longitude: lng }}
+                  onPress={() => {
+                    mapRef.current?.animateToRegion({
+                      latitude: lat,
+                      longitude: lng,
+                      latitudeDelta: 2,
+                      longitudeDelta: 2,
+                    }, 500);
+                  }}
+                >
+                  <View style={[styles.markerCollecte, { backgroundColor: Colors.blue, width: 42, height: 42, borderRadius: 21 }]}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>{point_count}</Text>
+                  </View>
+                </Marker>
+              );
+            }
+
+            const p = properties as PointCollecte;
             const cfg = getPointConfig(p.type_dechet);
             return (
               <Marker
                 key={`p-${p.id}`}
-                coordinate={{ latitude: parseFloat(p.latitude as any), longitude: parseFloat(p.longitude as any) }}
+                coordinate={{ latitude: lat, longitude: lng }}
                 onPress={() => setSelectedPoint(p)}
               >
                 <View style={[styles.markerCollecte, { backgroundColor: cfg.color }]}>

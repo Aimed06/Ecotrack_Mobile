@@ -203,6 +203,33 @@ export default function SignalementScreen() {
       Alert.alert(t('common.success'), t('report.successMsg'), [
         { text: 'OK', onPress: () => { setTitre(''); setDescription(''); setPhotos([]); setDegre(1); setWilaya(''); } },
       ]);
+
+      // =========================================================================
+      // NOTIFICATION LOCALE DE CONFIRMATION — Décommenter dans un build EAS
+      //
+      // Envoie une notification immédiate confirmant l'envoi du signalement.
+      // Notification locale uniquement (pas de serveur), trigger: null = immédiat.
+      //
+      // Les notifications de changement de statut (signalement résolu, validé...)
+      // sont elles envoyées par le BACKEND via l'API Expo Push :
+      //   POST https://exp.host/--/api/v2/push/send
+      //   { to: pushToken, title: "...", body: "...", data: { type: "signalement", id: X } }
+      //
+      // Pour activer la confirmation locale : décommenter les lignes ci-dessous.
+      // =========================================================================
+      //
+      // try {
+      //   const Notifications = await import('expo-notifications');
+      //   await Notifications.scheduleNotificationAsync({
+      //     content: {
+      //       title: '✅ Signalement envoyé',
+      //       body: 'Votre signalement a bien été reçu. Vous serez notifié si son statut change.',
+      //       data: { type: 'confirmation' },
+      //     },
+      //     trigger: null, // null = notification immédiate
+      //   });
+      // } catch {}
+
     } catch (err: any) {
       Alert.alert(t('common.error'), err.response?.data?.error || err.response?.data?.message || err.message || 'Impossible d\'envoyer le signalement');
     } finally {

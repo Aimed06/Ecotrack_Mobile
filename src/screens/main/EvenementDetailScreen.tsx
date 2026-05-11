@@ -151,6 +151,27 @@ export default function EvenementDetailScreen({ navigation, route }: Props) {
     try {
       await inscrireEvenement(id);
       Alert.alert(t('eventDetail.registeredTitle'), t('eventDetail.registeredMsg'));
+
+      // =========================================================================
+      // RAPPEL ÉVÉNEMENT 24H AVANT — Décommenter dans un build EAS (pas Expo Go)
+      //
+      // Planifie une notification locale qui se déclenche 24h avant l'événement.
+      // Ne nécessite pas de serveur — c'est une notification programmée en local.
+      //
+      // Pour activer :
+      //   1. Décommenter les lignes ci-dessous
+      //   2. Décommenter scheduleEventReminder dans notificationSetup.ts
+      //   3. Importer en haut du fichier :
+      //      import { scheduleEventReminder } from '../../services/notificationSetup';
+      // =========================================================================
+      //
+      // if (evenement) {
+      //   await scheduleEventReminder({
+      //     id: evenement.id,
+      //     titre: evenement.titre,
+      //     date_debut: evenement.date_debut,
+      //   });
+      // }
     } catch (err: any) {
       Alert.alert(t('common.error'), err.response?.data?.error || err.response?.data?.message || 'Impossible de s\'inscrire');
     } finally {
